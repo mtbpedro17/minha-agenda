@@ -1,19 +1,24 @@
 {
   "name": "minha-agenda",
-  "version": "0.1.0",
+  "version": "1.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --tsconfig tsconfig.json tests/index.ts"
   },
   "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
     "@capacitor-community/sqlite": "^8.1.1",
     "@capacitor/android": "^8.5.1",
+    "@capacitor/app": "^8.1.2",
     "@capacitor/cli": "^8.5.1",
     "@capacitor/core": "^8.5.1",
+    "@capacitor/filesystem": "^8.1.5",
     "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/share": "^8.0.3",
     "jeep-sqlite": "^2.8.0",
     "lucide-react": "^1.41.0",
     "next": "16.3.4",
@@ -21,7 +26,6 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -29,6 +33,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }

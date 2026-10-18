@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { X, Trash2 } from "lucide-react";
 import type { Note } from "@/types/note";
+import ConfirmDialog from "./ConfirmDialog";
+import { useBackHandler } from "@/lib/navigation/backButton";
 
 export default function NoteFormSheet({
   note,
@@ -17,6 +19,11 @@ export default function NoteFormSheet({
 }) {
   const [title, setTitle] = useState(note?.title ?? "");
   const [content, setContent] = useState(note?.content ?? "");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  // Android back button / Escape closes the sheet without saving (same as X).
+  // Tapping outside does NOT close it, so typed text isn't lost by accident.
+  useBackHandler(true, onClose);
 
   function handleSave() {
     if (!content.trim() && !title.trim()) {
@@ -66,7 +73,7 @@ export default function NoteFormSheet({
             <button
               type="button"
               aria-label="Excluir nota"
-              onClick={() => onDelete(note)}
+              onClick={() => setConfirmingDelete(true)}
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-priority-high-soft text-priority-high"
             >
               <Trash2 size={18} />
@@ -81,6 +88,17 @@ export default function NoteFormSheet({
           </button>
         </div>
       </div>
+      {confirmingDelete && note && onDelete && (
+        <ConfirmDialog
+          title="Excluir nota?"
+          message={`"${note.title}" será excluída. Isso não pode ser desfeito.`}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={() => {
+            setConfirmingDelete(false);
+            onDelete(note);
+          }}
+        />
+      )}
     </div>
   );
 }

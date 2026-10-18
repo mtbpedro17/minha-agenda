@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ShieldCheck, WifiOff } from "lucide-react";
+import { ArrowLeft, HardDrive, ShieldCheck, WifiOff } from "lucide-react";
 import { getSetting, setSetting } from "@/lib/database/settings";
+import BackupSection from "@/components/BackupSection";
+import SecuritySection from "@/components/SecuritySection";
+import NotificationSoundSection from "@/components/NotificationSoundSection";
+// Single source of truth for the version (Android reads it too, see android/app/build.gradle).
+import { version as appVersion } from "@/package.json";
 
 export default function ConfiguracoesPage() {
   const router = useRouter();
@@ -45,17 +50,23 @@ export default function ConfiguracoesPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Seu nome"
-            className="flex-1 rounded-2xl bg-surface px-4 py-3 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+            className="min-w-0 flex-1 rounded-2xl bg-surface px-4 py-3 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <button
             type="button"
             onClick={handleSave}
-            className="rounded-2xl bg-accent px-5 py-3 font-medium text-white transition-transform active:scale-95"
+            className="shrink-0 rounded-2xl bg-accent px-5 py-3 font-medium text-white transition-transform active:scale-95"
           >
             {saved ? "Salvo!" : "Salvar"}
           </button>
         </div>
       </div>
+
+      <SecuritySection />
+
+      <NotificationSoundSection />
+
+      <BackupSection />
 
       <div className="mt-8 space-y-3">
         <div className="flex items-start gap-3 rounded-2xl bg-surface px-4 py-4">
@@ -77,10 +88,22 @@ export default function ConfiguracoesPage() {
             </p>
           </div>
         </div>
+        <div className="flex items-start gap-3 rounded-2xl bg-surface px-4 py-4">
+          <HardDrive size={18} className="mt-0.5 shrink-0 text-accent" />
+          <div>
+            <p className="font-medium text-foreground">Sem backup na nuvem</p>
+            <p className="mt-0.5 text-sm text-muted">
+              Nada é copiado para a sua conta Google. Se você desinstalar o
+              app ou limpar os dados dele, suas tarefas e notas serão apagadas.
+              Use <strong className="font-medium text-foreground">Exportar</strong>{" "}
+              acima para guardar uma cópia.
+            </p>
+          </div>
+        </div>
       </div>
 
       <p className="mt-8 text-center text-xs text-muted">
-        Minha Agenda • v1.0 (MVP)
+        Minha Agenda • v{appVersion}
       </p>
     </main>
   );

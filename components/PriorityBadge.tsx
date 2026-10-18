@@ -1,11 +1,6 @@
 import type { Priority } from "@/types/task";
-import { PRIORITY_LABEL } from "@/types/task";
+import { PRIORITY_DOT_CLASS, PRIORITY_LABEL } from "@/types/task";
 
-const DOT_COLOR: Record<Priority, string> = {
-  HIGH: "bg-priority-high",
-  MEDIUM: "bg-priority-medium",
-  LOW: "bg-priority-low",
-};
 
 const TEXT_COLOR: Record<Priority, string> = {
   HIGH: "text-priority-high",
@@ -18,7 +13,7 @@ export default function PriorityBadge({ priority }: { priority: Priority }) {
     <span
       className={`inline-flex items-center gap-1.5 text-xs font-medium ${TEXT_COLOR[priority]}`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${DOT_COLOR[priority]}`} />
+      <span className={`h-1.5 w-1.5 rounded-full ${PRIORITY_DOT_CLASS[priority]}`} />
       {PRIORITY_LABEL[priority]}
     </span>
   );

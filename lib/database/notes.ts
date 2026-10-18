@@ -49,6 +49,15 @@ export async function getNoteById(id: number): Promise<Note | null> {
   return row ? rowToNote(row) : null;
 }
 
+/** All notes, oldest day first (used by the backup export). */
+export async function listAllNotes(): Promise<Note[]> {
+  const db = await getDb();
+  const result = await db.query(
+    "SELECT * FROM notes ORDER BY date ASC, created_at ASC"
+  );
+  return (result.values as NoteRow[] | undefined)?.map(rowToNote) ?? [];
+}
+
 export async function listNotesByDate(date: string): Promise<Note[]> {
   const db = await getDb();
   const result = await db.query(
@@ -56,6 +65,21 @@ export async function listNotesByDate(date: string): Promise<Note[]> {
     [date]
   );
   return (result.values as NoteRow[] | undefined)?.map(rowToNote) ?? [];
+}
+
+/** Distinct dates (YYYY-MM-DD) between `start` and `end` (inclusive) that have notes. */
+export async function listNoteDatesBetween(
+  start: string,
+  end: string
+): Promise<string[]> {
+  const db = await getDb();
+  const result = await db.query(
+    "SELECT DISTINCT date FROM notes WHERE date BETWEEN ? AND ?",
+    [start, end]
+  );
+  return ((result.values as { date: string }[] | undefined) ?? []).map(
+    (r) => r.date
+  );
 }
 
 export async function updateNote(

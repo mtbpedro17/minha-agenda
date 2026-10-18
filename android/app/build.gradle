@@ -1,5 +1,20 @@
 apply plugin: 'com.android.application'
 
+// ---------------------------------------------------------------------------
+// App version: the ONLY place to change it is "version" in /package.json.
+//   versionName = "1.5.0"            (shown to users)
+//   versionCode = 1*10000 + 5*100 + 0 = 10500  (must grow on every Play upload)
+// So: 1.4.0 -> 10400, 1.4.1 -> 10401, 1.5.0 -> 10500, 2.0.0 -> 20000.
+// Minor and patch must stay below 100.
+// ---------------------------------------------------------------------------
+def appVersionName = new groovy.json.JsonSlurper()
+        .parse(rootProject.file('../package.json'))
+        .version
+def appVersionParts = appVersionName.tokenize('.-')
+def appVersionCode = appVersionParts[0].toInteger() * 10000 +
+        appVersionParts[1].toInteger() * 100 +
+        appVersionParts[2].toInteger()
+
 android {
     namespace = "com.mutombo.minhaagenda"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +22,8 @@ android {
         applicationId "com.mutombo.minhaagenda"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

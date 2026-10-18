@@ -19,3 +19,10 @@ export async function setSetting(key: string, value: string): Promise<void> {
   );
   await persistWeb();
 }
+
+/** All settings as key/value pairs (used by the backup export). */
+export async function listSettings(): Promise<{ key: string; value: string }[]> {
+  const db = await getDb();
+  const result = await db.query("SELECT key, value FROM settings ORDER BY key");
+  return (result.values as { key: string; value: string }[] | undefined) ?? [];
+}

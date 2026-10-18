@@ -71,6 +71,35 @@ export function weekdayShort(iso: string): string {
   return WEEKDAYS_SHORT[fromISODate(iso).getDay()];
 }
 
+/** Adds (or subtracts, if negative) whole days to an ISO date, in local time. */
+export function addDays(iso: string, days: number): string {
+  const date = fromISODate(iso);
+  date.setDate(date.getDate() + days);
+  return toISODate(date);
+}
+
+/**
+ * Short, human label for a date relative to today:
+ * "Hoje", "Amanhã", "Ontem", "05/09" (same year) or "05/09/27" (other year).
+ * Kept short on purpose: it fits under the time in TaskCard.
+ */
+export function relativeDayLabel(iso: string, today: string = todayISO()): string {
+  if (iso === today) return "Hoje";
+  if (iso === addDays(today, 1)) return "Amanhã";
+  if (iso === addDays(today, -1)) return "Ontem";
+  return iso.slice(0, 4) === today.slice(0, 4)
+    ? formatDayMonth(iso)
+    : `${formatDayMonth(iso)}/${iso.slice(2, 4)}`;
+}
+
+/** Current local time as HH:mm. */
+export function nowHHMM(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(
+    d.getMinutes()
+  ).padStart(2, "0")}`;
+}
+
 /** Returns an array of 7 ISO dates centered on `iso` (3 before, `iso`, 3 after). */
 export function weekAround(iso: string): string[] {
   const center = fromISODate(iso);

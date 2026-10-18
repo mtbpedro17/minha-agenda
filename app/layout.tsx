@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import AppInit from "@/components/AppInit";
+import AppLock from "@/components/AppLock";
 
 export const metadata: Metadata = {
   title: "Minha Agenda",
@@ -19,9 +20,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="pt-BR" className="h-full antialiased">
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <AppInit />
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
-          {children}
-        </div>
+        <AppLock>
+          <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
+            {children}
+          </div>
+        </AppLock>
       </body>
     </html>
   );

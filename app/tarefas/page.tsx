@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import BottomNavigation from "@/components/BottomNavigation";
 import FloatingButton from "@/components/FloatingButton";
@@ -22,6 +23,7 @@ const FILTERS: { value: Filter; label: string }[] = [
 ];
 
 export default function TarefasPage() {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -78,8 +80,13 @@ export default function TarefasPage() {
           <h1 className="text-xl font-semibold text-foreground">Tarefas</h1>
           <button
             type="button"
-            aria-label="Pesquisar"
-            onClick={() => setSearchOpen((v) => !v)}
+            aria-label={searchOpen ? "Fechar pesquisa" : "Pesquisar"}
+            onClick={() => {
+              // Closing the search also clears it, so the list is never
+              // filtered by text the user can no longer see.
+              if (searchOpen) setQuery("");
+              setSearchOpen(!searchOpen);
+            }}
             className="rounded-full p-1.5 text-muted"
           >
             {searchOpen ? <X size={20} /> : <Search size={20} />}
@@ -132,7 +139,7 @@ export default function TarefasPage() {
                   <div className="mt-2.5 space-y-2.5">
                     {items.map((task) => (
                       <div key={task.id} onClick={() => setSelected(task)}>
-                        <TaskCard task={task} onToggle={handleToggle} />
+                        <TaskCard task={task} onToggle={handleToggle} showDate />
                       </div>
                     ))}
                   </div>
@@ -148,6 +155,7 @@ export default function TarefasPage() {
           task={selected}
           onClose={() => setSelected(null)}
           onDelete={handleDelete}
+          onEdit={(task) => router.push(`/tarefas/editar?id=${task.id}`)}
         />
       )}
 

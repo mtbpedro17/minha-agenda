@@ -1,5 +1,7 @@
 import { getDb, persistWeb } from "./sqlite";
 import type { NewTaskInput, Priority, Task, UpdateTaskInput } from "@/types/task";
+import { dateAfterCompletion, parseRepeat, serializeRepeat } from "@/lib/utils/repeat";
+import { todayISO } from "@/lib/utils/date";
 
 // The SQLite plugin returns generic rows; this shape matches our `tasks` table.
 interface TaskRow {
@@ -12,6 +14,8 @@ interface TaskRow {
   completed: number;
   reminder_enabled: number;
   notification_id: number | null;
+  reminder_offset: number;
+  repeat_rule: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +30,8 @@ function rowToTask(row: TaskRow): Task {
     priority: row.priority,
     completed: !!row.completed,
     reminderEnabled: !!row.reminder_enabled,
+    reminderOffset: row.reminder_offset ?? 0,
+    repeat: parseRepeat(row.repeat_rule),
     notificationId: row.notification_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -38,8 +44,8 @@ export async function createTask(input: NewTaskInput): Promise<Task> {
 
   const result = await db.run(
     `INSERT INTO tasks
-      (title, description, date, time, priority, completed, reminder_enabled, notification_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 0, ?, NULL, ?, ?)`,
+      (title, description, date, time, priority, completed, reminder_enabled, reminder_offset, repeat_rule, notification_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, NULL, ?, ?)`,
     [
       input.title,
       input.description ?? null,
@@ -47,6 +53,8 @@ export async function createTask(input: NewTaskInput): Promise<Task> {
       input.time,
       input.priority,
       input.reminderEnabled ? 1 : 0,
+      input.reminderOffset ?? 0,
+      serializeRepeat(input.repeat ?? null),
       now,
       now,
     ]
@@ -102,6 +110,33 @@ export async function listUpcomingTasks(
   return (result.values as TaskRow[] | undefined)?.map(rowToTask) ?? [];
 }
 
+/** Distinct dates (YYYY-MM-DD) between `start` and `end` (inclusive) that have tasks. */
+export async function listTaskDatesBetween(
+  start: string,
+  end: string
+): Promise<string[]> {
+  const db = await getDb();
+  const result = await db.query(
+    "SELECT DISTINCT date FROM tasks WHERE date BETWEEN ? AND ?",
+    [start, end]
+  );
+  return ((result.values as { date: string }[] | undefined) ?? []).map(
+    (r) => r.date
+  );
+}
+
+/** Pending tasks from days before `today` (oldest first). */
+export async function listOverdueTasks(today: string): Promise<Task[]> {
+  const db = await getDb();
+  const result = await db.query(
+    `SELECT * FROM tasks
+     WHERE completed = 0 AND date < ?
+     ORDER BY date ASC, time ASC`,
+    [today]
+  );
+  return (result.values as TaskRow[] | undefined)?.map(rowToTask) ?? [];
+}
+
 export async function updateTask(
   id: number,
   input: UpdateTaskInput
@@ -119,6 +154,8 @@ export async function updateTask(
     priority: input.priority ?? existing.priority,
     completed: input.completed ?? existing.completed,
     reminderEnabled: input.reminderEnabled ?? existing.reminderEnabled,
+    reminderOffset: input.reminderOffset ?? existing.reminderOffset,
+    repeat: input.repeat !== undefined ? input.repeat : existing.repeat,
   };
 
   const now = new Date().toISOString();
@@ -126,7 +163,7 @@ export async function updateTask(
   await db.run(
     `UPDATE tasks SET
       title = ?, description = ?, date = ?, time = ?, priority = ?,
-      completed = ?, reminder_enabled = ?, updated_at = ?
+      completed = ?, reminder_enabled = ?, reminder_offset = ?, repeat_rule = ?, updated_at = ?
      WHERE id = ?`,
     [
       merged.title,
@@ -136,6 +173,8 @@ export async function updateTask(
       merged.priority,
       merged.completed ? 1 : 0,
       merged.reminderEnabled ? 1 : 0,
+      merged.reminderOffset,
+      serializeRepeat(merged.repeat),
       now,
       id,
     ]
@@ -159,10 +198,46 @@ export async function setTaskNotificationId(
   await persistWeb();
 }
 
+/**
+ * Marks a task as done (or pending again).
+ *
+ * Recurring tasks are never marked done: completing one moves its date to
+ * the next occurrence (today or later) and it stays pending. To stop a
+ * recurring task, edit it to "Não repete" (or delete it).
+ */
 export async function toggleTaskCompleted(id: number): Promise<Task> {
   const existing = await getTaskById(id);
   if (!existing) throw new Error("Tarefa não encontrada.");
+  if (existing.repeat && !existing.completed) {
+    return updateTask(id, {
+      date: dateAfterCompletion(existing.repeat, existing.date, todayISO()),
+    });
+  }
   return updateTask(id, { completed: !existing.completed });
+}
+
+/**
+ * Pending tasks that may still need a reminder: reminder on, not completed,
+ * and either recurring or dated today or later.
+ */
+export async function listTasksNeedingReminders(today: string): Promise<Task[]> {
+  const db = await getDb();
+  const result = await db.query(
+    `SELECT * FROM tasks
+     WHERE completed = 0 AND reminder_enabled = 1
+       AND (repeat_rule IS NOT NULL OR date >= ?)`,
+    [today]
+  );
+  return (result.values as TaskRow[] | undefined)?.map(rowToTask) ?? [];
+}
+
+/** Pending recurring tasks (used to project future occurrences in the Agenda). */
+export async function listRecurringTasks(): Promise<Task[]> {
+  const db = await getDb();
+  const result = await db.query(
+    "SELECT * FROM tasks WHERE completed = 0 AND repeat_rule IS NOT NULL ORDER BY time ASC"
+  );
+  return (result.values as TaskRow[] | undefined)?.map(rowToTask) ?? [];
 }
 
 export async function deleteTask(id: number): Promise<void> {

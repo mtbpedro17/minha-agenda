@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Settings } from "lucide-react";
+import { AlertCircle, Settings } from "lucide-react";
 import BottomNavigation from "@/components/BottomNavigation";
 import FloatingButton from "@/components/FloatingButton";
 import TaskCard from "@/components/TaskCard";
@@ -10,6 +10,7 @@ import EmptyState from "@/components/EmptyState";
 import type { Task } from "@/types/task";
 import {
   getTodaySummary,
+  listOverdueTasks,
   listUpcomingTasks,
   toggleTaskCompleted,
   type TaskSummary,
@@ -20,6 +21,9 @@ import { formatLongDate, greeting, todayISO } from "@/lib/utils/date";
 import { quoteOfTheDay } from "@/lib/utils/quotes";
 import { ListTodo } from "lucide-react";
 
+/** How many overdue tasks the "Atrasadas" section shows before linking to the full list. */
+const MAX_OVERDUE_SHOWN = 3;
+
 export default function HojePage() {
   const today = todayISO();
   const [userName, setUserName] = useState("");
@@ -29,17 +33,20 @@ export default function HojePage() {
     completed: 0,
   });
   const [upcoming, setUpcoming] = useState<Task[]>([]);
+  const [overdue, setOverdue] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const [name, todaySummary, nextTasks] = await Promise.all([
+    const [name, todaySummary, nextTasks, lateTasks] = await Promise.all([
       getSetting("user_name"),
       getTodaySummary(today),
       listUpcomingTasks(today, 3),
+      listOverdueTasks(today),
     ]);
     setUserName(name ?? "");
     setSummary(todaySummary);
     setUpcoming(nextTasks);
+    setOverdue(lateTasks);
     setLoading(false);
   }, [today]);
 
@@ -100,6 +107,35 @@ export default function HojePage() {
           </div>
         </section>
 
+        {overdue.length > 0 && (
+          <section className="mt-6">
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-1.5 text-sm font-medium text-priority-high">
+                <AlertCircle size={16} />
+                Atrasadas ({overdue.length})
+              </h2>
+              {overdue.length > MAX_OVERDUE_SHOWN && (
+                <Link
+                  href="/tarefas"
+                  className="text-sm font-medium text-accent"
+                >
+                  +{overdue.length - MAX_OVERDUE_SHOWN} na lista
+                </Link>
+              )}
+            </div>
+            <div className="mt-3 space-y-2.5">
+              {overdue.slice(0, MAX_OVERDUE_SHOWN).map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onToggle={handleToggle}
+                  showDate
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="mt-6">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-medium text-muted">
@@ -119,7 +155,12 @@ export default function HojePage() {
               />
             ) : (
               upcoming.map((task) => (
-                <TaskCard key={task.id} task={task} onToggle={handleToggle} />
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onToggle={handleToggle}
+                  showDate
+                />
               ))
             )}
           </div>
